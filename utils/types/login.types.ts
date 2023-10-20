@@ -1,5 +1,6 @@
-export type loginReq = {
+export type loginTypes = {
+  nome: string;
   email: string;
-  senha: string;
   token: string;
+  isAdmin?: boolean;
 };

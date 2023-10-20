@@ -8,9 +8,9 @@ export const dbConnection =
       return handler(req, res);
     }
 
-    const { db_connection_string } = process.env;
+    const { DB_CONNECTION_STRING } = process.env;
 
-    if (!db_connection_string) {
+    if (!DB_CONNECTION_STRING) {
       return res.status(500).json({
         Error:
           'Não encontrada string de conexão, entrar em contato com um administrador!',
@@ -29,6 +29,6 @@ export const dbConnection =
       console.error('Erro ao conectar ao banco de dados!')
     );
 
-    await mongoose.connect(db_connection_string);
+    await mongoose.connect(DB_CONNECTION_STRING);
     return handler(req, res);
   };

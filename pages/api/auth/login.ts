@@ -1,33 +1,54 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+
 import { dbConnection } from '@/middlewares/db_connection';
-import { loginReq } from '@/utils/types/login.types';
+import { jwtValidator } from '@/middlewares/jwt_auth';
 import { userModel } from '@/models/user.model';
-import bcrypt from 'bcrypt';
+
+import md5 from 'md5';
 import jwt from 'jsonwebtoken';
 
-const secretKey = process.env.JWT_SECRET;
+import type { responseTypes } from '@/utils/types/response.types';
+import type { loginTypes } from '@/utils/types/login.types';
 
-const endpointLogin = async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method === 'POST') {
-    const usuario = req.body as loginReq;
-    const usuarioLogin = await userModel.findOne({ email: usuario.email });
-
-    if (usuarioLogin) {
-      const senhaCorrespondente = await bcrypt.compare(
-        usuario.senha,
-        usuarioLogin.senha
-      );
-
-      if (senhaCorrespondente && secretKey) {
-        const token = jwt.sign({ _id: usuarioLogin._id }, secretKey);
-        return res.status(200).json({ token });
-      }
+const endpointLogin = async (
+  req: NextApiRequest,
+  res: NextApiResponse<loginTypes | responseTypes>
+) => {
+  try {
+    const { JWT_SECRET } = process.env;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ mensagem: 'Token JWT não informado! ' });
     }
 
-    return res.status(400).json({ message: 'Usuário não encontrado!' });
+    if (req.method === 'POST') {
+      const { login, senha } = req.body;
+      const usuariosEncontrados = await userModel.find({
+        email: login,
+        senha: md5(senha),
+      });
+
+      if (usuariosEncontrados && usuariosEncontrados.length > 0) {
+        const usuarioEncontrado = usuariosEncontrados[0];
+        console.log(usuarioEncontrado.isAdmin);
+        const token = jwt.sign(
+          { _id: usuarioEncontrado._id, isAdmin: usuarioEncontrado.isAdmin },
+          JWT_SECRET
+        );
+
+        return res.status(200).json({
+          nome: usuarioEncontrado.nome,
+          email: usuarioEncontrado.email,
+          isAdmin: usuarioEncontrado.isAdmin,
+          token,
+        });
+      }
+
+      return res.status(401).json({ mensagem: 'Usuário não encontrado!' });
+    } else {
+      return res.status(405).json({ mensagem: 'Método inválido!' });
+    }
+  } catch (erro) {
+    return res.status(500).json({ mensagem: 'Erro interno do servidor' });
   }
-
-  return res.status(400).json({ message: 'Método inválido!' });
 };
-
 export default dbConnection(endpointLogin);
