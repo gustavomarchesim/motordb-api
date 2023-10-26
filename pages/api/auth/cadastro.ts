@@ -1,13 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { dbConnection } from '@/middlewares/db_connection';
-import { cadastroReq } from '@/utils/types/cadastro.types';
-import { userModel } from '@/models/user.model';
-import validator from 'validator';
+import nc from 'next-connect';
 import md5 from 'md5';
+import validator from 'validator';
 
-const endpointCadastro = async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    if (req.method === 'POST') {
+import { upload, uploadImagem } from '@/services/cosmicjs';
+
+import { userModel } from '@/models/user.model';
+import { cadastroReq } from '@/utils/types/cadastro.types';
+import { dbConnection } from '@/middlewares/db_connection';
+
+const handler = nc()
+  .use(upload.single('file'))
+  .post(async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
       const usuario = req.body as cadastroReq;
 
       if (!usuario.nome || usuario.nome.length < 2) {
@@ -42,21 +47,27 @@ const endpointCadastro = async (req: NextApiRequest, res: NextApiResponse) => {
 
       const senhaHash = md5(usuario.senha);
 
+      const image = await uploadImagem(req);
+
       const usuarioFormatado = {
         nome: usuario.nome,
         email: usuario.email,
         senha: senhaHash,
+        avatar: image?.media.url,
         isAdmin: usuario.isAdmin,
       };
 
       await userModel.create(usuarioFormatado);
       return res.status(200).json({ mensagem: 'Usuário criado com sucesso!' });
-    } else {
-      return res.status(405).json({ error: 'Método informado inválido!' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro interno do servidor' });
-  }
+  });
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
 };
 
-export default dbConnection(endpointCadastro);
+export default dbConnection(handler);
