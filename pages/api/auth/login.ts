@@ -29,7 +29,6 @@ const endpointLogin = async (
 
       if (usuariosEncontrados && usuariosEncontrados.length > 0) {
         const usuarioEncontrado = usuariosEncontrados[0];
-        console.log(usuarioEncontrado.isAdmin);
         const token = jwt.sign(
           { _id: usuarioEncontrado._id, isAdmin: usuarioEncontrado.isAdmin },
           JWT_SECRET

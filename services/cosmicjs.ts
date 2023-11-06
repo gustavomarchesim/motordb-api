@@ -27,7 +27,7 @@ const uploadImagem = async (req: any) => {
       buffer: req.file.buffer,
     };
 
-    if (req.url && req.url.includes('carros')) {
+    if (req.url && req.url.includes('admin/cadastro')) {
       return await bucketMDB.media.insertOne({
         media: media,
         folder: 'carros',
